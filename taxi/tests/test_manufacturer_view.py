@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -10,7 +11,10 @@ MANUFACTURER_LIST_URL = reverse("taxi:manufacturer-list")
 class PublicManufacturerTest(TestCase):
     def test_login_required(self):
         res = self.client.get(MANUFACTURER_LIST_URL)
-        self.assertNotEqual(res.status_code, 200)
+        self.assertRedirects(
+            res,
+            f"{settings.LOGIN_URL}?next={MANUFACTURER_LIST_URL}"
+        )
 
 
 class PrivateManufacturerTest(TestCase):
@@ -100,3 +104,14 @@ class PrivateManufacturerTest(TestCase):
         self.assertFalse(
             Manufacturer.objects.filter(id=self.manufacturer2.id).exists()
         )
+
+    def test_search_no_results_returns_empty_list(self):
+        response = self.client.get(MANUFACTURER_LIST_URL, {"name": "xyz"})
+        self.assertFalse(response.context["manufacturer_list"].exists())
+
+    def test_search_empty_query_returns_full_list(self):
+        response = self.client.get(MANUFACTURER_LIST_URL, {"name": ""})
+        manufacturer_list = response.context["manufacturer_list"]
+        self.assertIn(self.manufacturer1, manufacturer_list)
+        self.assertIn(self.manufacturer2, manufacturer_list)
+

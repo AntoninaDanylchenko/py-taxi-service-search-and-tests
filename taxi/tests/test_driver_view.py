@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -10,7 +11,10 @@ DRIVER_LIST_URL = reverse("taxi:driver-list")
 class PublicDriversViewTests(TestCase):
     def test_login_required(self):
         response = self.client.get(DRIVER_LIST_URL)
-        self.assertNotEqual(response.status_code, 200)
+        self.assertRedirects(
+            response,
+            f"{settings.LOGIN_URL}?next={DRIVER_LIST_URL}"
+        )
 
 
 class PrivateDriversViewTests(TestCase):
@@ -76,3 +80,14 @@ class PrivateDriversViewTests(TestCase):
         form = response.context.get("search_form")
         self.assertIsInstance(form, DriversSearchForm)
         self.assertIn("username", form.fields)
+
+    def test_search_no_results_returns_empty_list(self):
+        response = self.client.get(DRIVER_LIST_URL, {"username": "nope"})
+        self.assertFalse(response.context["driver_list"].exists())
+
+    def test_search_empty_query_returns_full_list(self):
+        response = self.client.get(DRIVER_LIST_URL, {"username": ""})
+        driver_list = response.context["driver_list"]
+        self.assertIn(self.driver1, driver_list)
+        self.assertIn(self.driver2, driver_list)
+

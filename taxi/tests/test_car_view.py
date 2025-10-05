@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -10,7 +11,10 @@ CAR_LIST_URL = reverse("taxi:car-list")
 class PublicCarViewTest(TestCase):
     def test_login_required(self):
         response = self.client.get(CAR_LIST_URL)
-        self.assertNotEqual(response.status_code, 200)
+        self.assertRedirects(
+            response,
+            f"{settings.LOGIN_URL}?next={CAR_LIST_URL}"
+        )
 
 
 class PrivateCarViewTest(TestCase):
@@ -65,3 +69,13 @@ class PrivateCarViewTest(TestCase):
     def test_list_view_uses_correct_template(self):
         response = self.client.get(CAR_LIST_URL)
         self.assertTemplateUsed(response, "taxi/car_list.html")
+
+    def test_search_no_results_returns_empty_list(self):
+        response = self.client.get(CAR_LIST_URL, {"model": "zzz"})
+        self.assertFalse(response.context["car_list"].exists())
+
+    def test_search_empty_query_returns_full_list(self):
+        response = self.client.get(CAR_LIST_URL, {"model": ""})
+        car_list = response.context["car_list"]
+        self.assertIn(self.car1, car_list)
+        self.assertIn(self.car2, car_list)
