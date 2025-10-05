@@ -90,4 +90,3 @@ class PrivateDriversViewTests(TestCase):
         driver_list = response.context["driver_list"]
         self.assertIn(self.driver1, driver_list)
         self.assertIn(self.driver2, driver_list)
-

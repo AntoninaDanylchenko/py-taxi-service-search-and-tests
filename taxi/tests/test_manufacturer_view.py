@@ -114,4 +114,3 @@ class PrivateManufacturerTest(TestCase):
         manufacturer_list = response.context["manufacturer_list"]
         self.assertIn(self.manufacturer1, manufacturer_list)
         self.assertIn(self.manufacturer2, manufacturer_list)
-
